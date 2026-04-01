@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include <string.h>
 #include <errno.h>
 #include <getopt.h>
@@ -22,6 +23,12 @@ const struct option longopts[] = {
 
 static char *new_filename;
 static int action = ACTION_UNDEFINED;
+
+/* qtc_decode.c */
+extern int32_t qtc_decode(uint8_t **, uint8_t *);
+
+void show_help(int);
+char *ch_ext(char *, char *);
 
 /* print help to the terminal */
 void show_help(int err) {
@@ -99,8 +106,43 @@ int main(int argc, char *argv[]) {
 
 	if(action == ACTION_QTC_TO_RAW) {
 
-		fprintf(stderr, "Not implemented\n");
-		return 1;
+		/* reading QTC2 file */
+		src_fd = fopen(argv[0], "rb");
+		if(!src_fd) {
+			fprintf(stderr, "fopen() returned NULL\n");
+			return 1;
+		}
+
+		/* file size */
+		fseek(src_fd, 0, SEEK_END);
+		size_t qtc_size = ftell(src_fd);
+		fseek(src_fd, 0, SEEK_SET);
+
+		/* allocating buffer for QTC2 file data */
+		uint8_t *qtc_data = malloc(qtc_size);
+		if(!qtc_data) {
+			fclose(src_fd);
+			fprintf(stderr, "malloc() returned NULL\n");
+			return 1;
+		}
+		fread(qtc_data, 1, qtc_size, src_fd);
+		fclose(src_fd);
+
+		/* decode */
+		uint8_t *raw_data;
+		int32_t raw_size = qtc_decode(&raw_data, qtc_data);
+		free(qtc_data);
+		if(raw_size == -1) {
+			fprintf(stderr, "qtc_decode() returned -1\n");
+			return 1;
+		}
+		
+		/* write decoded data */
+		dest_fd = fopen(argc < 2 ? ch_ext(argv[0], "raw") : argv[1], "wb");
+		fwrite(raw_data, 1, raw_size, dest_fd);
+		fclose(dest_fd);
+
+		free(raw_data);
 
 	} else if(action == ACTION_RAW_TO_QTC) {
 

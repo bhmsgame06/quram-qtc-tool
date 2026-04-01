@@ -19,9 +19,7 @@
 #define EXTRACT_BITS(value, bits)	while(bit < bits) { \
 										cmd_bytes = (cmd_bytes << 8) | *p_cmd_buf++; \
 										bit += 8; \
-										printf("%d, %d\n", bit, bits); \
 									} \
-									printf("outside loop\n"); \
 									bit -= bits; \
 									value = ((cmd_bytes >> bit) & ((1 << bits) - 1));
 
@@ -79,7 +77,6 @@ int32_t qtc_decode(uint8_t **p_out, uint8_t *in) {
 			(in[11] << 24);
 	/* output buffer */
 	uint8_t *out_buf = malloc(out_size);
-	printf("%p\n", out_buf);
 	if(!out_buf) {
 		fprintf(stderr, "malloc() returned NULL\n");
 		return -1;

@@ -74,7 +74,7 @@ int32_t qtc_decode(uint8_t **p_out, uint8_t *in) {
 	/* current decoded macro-blocks */
 	int unp_mblks = 0;
 	/* total macro-blocks */
-	int total_mblks = 4 * (out_size >> 4);
+	int total_mblks = (out_size >> 4) << 2;
 
 	/* starting decoding;
 	 * first quad-macro-block */

@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <stdbool.h>
 #include <string.h>
 #include <errno.h>
 #include <getopt.h>
@@ -26,6 +27,8 @@ static int action = ACTION_UNDEFINED;
 
 /* qtc_decode.c */
 extern int32_t qtc_decode(uint8_t **, uint8_t *);
+/* qtc_encode.c */
+extern bool qtc_encode(FILE *, uint8_t *, size_t);
 
 void show_help(int);
 char *ch_ext(char *, char *);
@@ -106,7 +109,7 @@ int main(int argc, char *argv[]) {
 
 	if(action == ACTION_QTC_TO_RAW) {
 
-		/* reading QTC2 file */
+		/* open QTC2 file */
 		src_fd = fopen(argv[0], "rb");
 		if(!src_fd) {
 			fprintf(stderr, "fopen() returned NULL\n");
@@ -139,6 +142,11 @@ int main(int argc, char *argv[]) {
 		
 		/* write decoded data */
 		dest_fd = fopen(argc < 2 ? ch_ext(argv[0], "raw") : argv[1], "wb");
+		if(!dest_fd) {
+			free(raw_data);
+			fprintf(stderr, "fopen() returned NULL\n");
+			return 1;
+		}
 		fwrite(raw_data, 1, raw_size, dest_fd);
 		fclose(dest_fd);
 
@@ -146,8 +154,44 @@ int main(int argc, char *argv[]) {
 
 	} else if(action == ACTION_RAW_TO_QTC) {
 
-		fprintf(stderr, "Not implemented\n");
-		return 1;
+		/* open raw file */
+		src_fd = fopen(argv[0], "rb");
+		if(!src_fd) {
+			fprintf(stderr, "fopen() returned NULL\n");
+			return 1;
+		}
+
+		/* file size */
+		fseek(src_fd, 0, SEEK_END);
+		size_t raw_size = ftell(src_fd);
+		fseek(src_fd, 0, SEEK_SET);
+
+		/* allocating buffer for raw file data */
+		uint8_t *raw_data = malloc(raw_size);
+		if(!raw_data) {
+			fclose(src_fd);
+			fprintf(stderr, "malloc() returned NULL\n");
+			return 1;
+		}
+		fread(raw_data, 1, raw_size, src_fd);
+		fclose(src_fd);
+
+		/* open destination file */
+		dest_fd = fopen(argc < 2 ? ch_ext(argv[0], "qtc") : argv[1], "wb");
+		if(!dest_fd) {
+			free(raw_data);
+			fprintf(stderr, "fopen() returned NULL\n");
+			return 1;
+		}
+
+		/* decode */
+		bool qtc_size = qtc_encode(dest_fd, raw_data, raw_size);
+		fclose(dest_fd);
+		free(raw_data);
+		if(!qtc_size) {
+			fprintf(stderr, "qtc_encode() returned -1\n");
+			return 1;
+		}
 
 	} else {
 

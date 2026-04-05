@@ -2,7 +2,9 @@ SRC_DIR := src
 BUILD_DIR := bin
 
 OBJS := $(SRC_DIR)/main.o \
-		$(SRC_DIR)/qtc_decode.o
+		$(SRC_DIR)/qtc_decode.o \
+		$(SRC_DIR)/qtc_encode.o \
+		$(SRC_DIR)/qtc_tables.o
 LIBS := 
 
 CFLAGS := -O2 -g

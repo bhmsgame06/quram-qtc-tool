@@ -237,12 +237,14 @@ skip_literal_2:
 
 				/* writing mixed = 0, literal = 0 */
 				memset(t_cmd_buf, 0, sizeof(t_cmd_buf));
-				t_cmd_bit = (cmd_bit & 7);
-				WRITE_CMD_BITS(0b00, 2);
+				t_cmd_bit = (cmd_bit & 7) + 2;
 
 				/* copying 16 raw bytes to block array */
 				t_block_length = 16;
 				memcpy(t_block, old_in, 16);
+
+				/* restoring old offset */
+				offset = old_offset;
 			}
 
 		}

@@ -148,60 +148,75 @@ encode_with_offset:
 				memset(t_cmd_buf, 0, sizeof(t_cmd_buf));
 				t_cmd_bit = (cmd_bit & 7);
 
-				/* resetting block (and writing empty stdlzbits value to it) */
-				t_block[0] = 0;
-				t_block_length = 1;
+				/* mixed or not */
+				if(curr_offset != old_offset || memcmp(in, in - curr_offset, 16)) {
+
+					/* mixed */
+					WRITE_CMD_BITS(0b1, 1);
 	
-				/* mixed */
-				WRITE_CMD_BITS(0b1, 1);
+					/* resetting block (and writing empty stdlzbits value to it) */
+					t_block[0] = 0;
+					t_block_length = 1;
+
+					for(int curr_mbk = 0; curr_mbk < 4; curr_mbk++) {
 	
-				for(int curr_mbk = 0; curr_mbk < 4; curr_mbk++) {
-	
-					if(curr_offset != old_offset) {
-						// sameoffs = false
-						if(curr_offset >= (1 << N_STD_DIST_BITS)) {
-							WRITE_CMD_BITS(0b00000000000000 | curr_offset, 14);
-						} else {
-							WRITE_CMD_BITS(0b01000000       | curr_offset, 8);
-						}
-						offset = curr_offset;
-					} else {
-						// sameoffs = true
-						WRITE_CMD_BITS(0b1, 1);
-						offset = old_offset;
-					}
-	
-					for(int curr_mbk_wrd = 0; curr_mbk_wrd < 2; curr_mbk_wrd++) {
-		
-						uint16_t valcur = *(uint16_t *)in;
-						uint16_t valoff = *(uint16_t *)(in - offset);
-	
-						if(valcur == valoff) {
-							/* copy from offset */
-							t_block[0] |= (1 << (7 - MBK_OFFS));
-						} else {
-							/* walking through diff table */
-							for(int diff_index = 0; diff_index < (sizeof(QuramDDC_diffTable) >> 1); diff_index++) {
-								if((valcur ^ valoff) == QuramDDC_diffTable[diff_index]) {
-									WRITE_CMD_BITS(0b0, 1);
-									WRITE_BLK_BYTE(diff_index);
-									goto skip_literal_2;
-								}
+						if(curr_offset != old_offset) {
+							// sameoffs = false
+							if(curr_offset >= (1 << N_STD_DIST_BITS)) {
+								WRITE_CMD_BITS(0b00000000000000 | curr_offset, 14);
+							} else {
+								WRITE_CMD_BITS(0b01000000       | curr_offset, 8);
 							}
+							offset = curr_offset;
+						} else {
+							// sameoffs = true
 							WRITE_CMD_BITS(0b1, 1);
-							COPY_TO_BLK_ARRAY(2);
+							offset = old_offset;
 						}
+	
+						for(int curr_mbk_wrd = 0; curr_mbk_wrd < 2; curr_mbk_wrd++) {
+		
+							uint16_t valcur = *(uint16_t *)in;
+							uint16_t valoff = *(uint16_t *)(in - offset);
+	
+							if(valcur == valoff) {
+								/* copy from offset */
+								t_block[0] |= (1 << (7 - MBK_OFFS));
+							} else {
+								/* walking through diff table */
+								for(int diff_index = 0; diff_index < (sizeof(QuramDDC_diffTable) >> 1); diff_index++) {
+									if((valcur ^ valoff) == QuramDDC_diffTable[diff_index]) {
+										WRITE_CMD_BITS(0b0, 1);
+										WRITE_BLK_BYTE(diff_index);
+										goto skip_literal_2;
+									}
+								}
+								WRITE_CMD_BITS(0b1, 1);
+								COPY_TO_BLK_ARRAY(2);
+							}
 skip_literal_2:
-						in += 2;
+							in += 2;
+	
+						}
+	
+						enc_mblks++;
 	
 					}
-	
-					enc_mblks++;
-	
+
+				} else {
+
+					/* resetting block */
+					t_block_length = 0;
+
+					/* not mixed */
+					WRITE_CMD_BITS(0b01, 2);
+					enc_mblks += 4;
+					in += 16;
+
 				}
 
 				/* comparing result bit count with the last one */
-				int bit_count = (t_cmd_bit - (cmd_bit & 7)) + (t_block_length << 3);
+				uint32_t bit_count = (t_cmd_bit - (cmd_bit & 7)) + (t_block_length << 3);
 				if(bit_count < best_bit_count) {
 					best_bit_count = bit_count;
 					best_offset = curr_offset;
@@ -213,6 +228,21 @@ skip_literal_2:
 				trying = false;
 				curr_offset = offset = best_offset;
 				goto encode_with_offset;
+			}
+
+			/* 130 cuz (16 bytes) * (8 bit) + 2 bit */
+			if(best_bit_count > 130) {
+				in = old_in + 16;
+				enc_mblks = old_enc_mblks + 4;
+
+				/* writing mixed = 0, literal = 0 */
+				memset(t_cmd_buf, 0, sizeof(t_cmd_buf));
+				t_cmd_bit = (cmd_bit & 7);
+				WRITE_CMD_BITS(0b00, 2);
+
+				/* copying 16 raw bytes to block array */
+				t_block_length = 16;
+				memcpy(t_block, old_in, 16);
 			}
 
 		}

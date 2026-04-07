@@ -134,10 +134,10 @@ skip_literal_1:
 			bool trying = true;
 
 			uint8_t *old_in = in;
-			int old_enc_mblks = enc_mblks;
+			uint32_t old_enc_mblks = enc_mblks;
 			uint32_t old_offset = offset;
 
-			int max_offset = MIN(old_enc_mblks << 2, (1 << N_EXT_DIST_BITS));
+			int max_offset = MIN(enc_mblks << 2, (1 << N_EXT_DIST_BITS));
 
 			for(; (curr_offset < max_offset) && trying; curr_offset++) {
 encode_with_offset:
@@ -145,32 +145,52 @@ encode_with_offset:
 				enc_mblks = old_enc_mblks;
 
 				/* resetting cmd */
-				memset(t_cmd_buf, 0, sizeof(t_cmd_buf));
-				t_cmd_bit = (cmd_bit & 7);
+				if(!trying) {
+					memset(t_cmd_buf, 0, sizeof(t_cmd_buf));
+					t_cmd_bit = (cmd_bit & 7);
+				} else {
+					t_cmd_bit = 0;
+				}
 
 				/* mixed or not */
 				if(curr_offset != old_offset || memcmp(in, in - curr_offset, 16)) {
 
-					/* mixed */
-					WRITE_CMD_BITS(0b1, 1);
+					if(!trying) {
+						/* mixed */
+						WRITE_CMD_BITS(0b1, 1);
+						/* resetting block (and writing empty stdlzbits value to it) */
+						t_block[0] = 0;
+					} else {
+						t_cmd_bit++;
+					}
 	
-					/* resetting block (and writing empty stdlzbits value to it) */
-					t_block[0] = 0;
 					t_block_length = 1;
 
 					for(int curr_mbk = 0; curr_mbk < 4; curr_mbk++) {
 	
 						if(curr_offset != old_offset) {
 							// sameoffs = false
-							if(curr_offset >= (1 << N_STD_DIST_BITS)) {
-								WRITE_CMD_BITS(0b00000000000000 | curr_offset, 14);
+							if(!trying) {
+								if(curr_offset >= (1 << N_STD_DIST_BITS)) {
+									WRITE_CMD_BITS(0b00000000000000 | curr_offset, 14);
+								} else {
+									WRITE_CMD_BITS(0b01000000       | curr_offset, 8);
+								}
 							} else {
-								WRITE_CMD_BITS(0b01000000       | curr_offset, 8);
+								if(curr_offset >= (1 << N_STD_DIST_BITS)) {
+									t_cmd_bit += 14;
+								} else {
+									t_cmd_bit += 8;
+								}
 							}
 							offset = curr_offset;
 						} else {
 							// sameoffs = true
-							WRITE_CMD_BITS(0b1, 1);
+							if(!trying) {
+								WRITE_CMD_BITS(0b1, 1);
+							} else {
+								t_cmd_bit++;
+							}
 							offset = old_offset;
 						}
 	
@@ -181,25 +201,39 @@ encode_with_offset:
 	
 							if(valcur == valoff) {
 								/* copy from offset */
-								t_block[0] |= (1 << (7 - MBK_OFFS));
+								if(!trying) t_block[0] |= (1 << (7 - MBK_OFFS));
 							} else {
 								/* walking through diff table */
 								for(int diff_index = 0; diff_index < (sizeof(QuramDDC_diffTable) >> 1); diff_index++) {
 									if((valcur ^ valoff) == QuramDDC_diffTable[diff_index]) {
-										WRITE_CMD_BITS(0b0, 1);
-										WRITE_BLK_BYTE(diff_index);
+
+										if(!trying) {
+											WRITE_CMD_BITS(0b0, 1);
+											WRITE_BLK_BYTE(diff_index);
+										} else {
+											t_cmd_bit++;
+											t_block_length++;
+										}
+
 										goto skip_literal_2;
 									}
 								}
-								WRITE_CMD_BITS(0b1, 1);
-								COPY_TO_BLK_ARRAY(2);
+
+								if(!trying) {
+									WRITE_CMD_BITS(0b1, 1);
+									COPY_TO_BLK_ARRAY(2);
+								} else {
+									t_cmd_bit++;
+									t_block_length += 2;
+								}
+
 							}
 skip_literal_2:
 							in += 2;
 	
 						}
 	
-						enc_mblks++;
+						if(!trying) enc_mblks++;
 	
 					}
 
@@ -209,14 +243,18 @@ skip_literal_2:
 					t_block_length = 0;
 
 					/* not mixed */
-					WRITE_CMD_BITS(0b01, 2);
-					enc_mblks += 4;
+					if(!trying) {
+						WRITE_CMD_BITS(0b01, 2);
+						enc_mblks += 4;
+					} else {
+						t_cmd_bit += 2;
+					}
 					in += 16;
 
 				}
 
 				/* comparing result bit count with the last one */
-				uint32_t bit_count = (t_cmd_bit - (cmd_bit & 7)) + (t_block_length << 3);
+				uint32_t bit_count = (t_cmd_bit - (trying ? 0 : (cmd_bit & 7))) + (t_block_length << 3);
 				if(bit_count < best_bit_count) {
 					best_bit_count = bit_count;
 					best_offset = curr_offset;
@@ -232,9 +270,6 @@ skip_literal_2:
 
 			/* 130 cuz (16 bytes) * (8 bit) + 2 bit */
 			if(best_bit_count > 130) {
-				in = old_in + 16;
-				enc_mblks = old_enc_mblks + 4;
-
 				/* writing mixed = 0, literal = 0 */
 				memset(t_cmd_buf, 0, sizeof(t_cmd_buf));
 				t_cmd_bit = (cmd_bit & 7) + 2;
@@ -245,6 +280,10 @@ skip_literal_2:
 
 				/* restoring old offset */
 				offset = old_offset;
+
+				in = old_in + 16;
+				enc_mblks = old_enc_mblks + 4;
+
 			}
 
 		}

@@ -183,7 +183,6 @@ encode_with_offset:
 									t_cmd_bit += 8;
 								}
 							}
-							offset = curr_offset;
 						} else {
 							// sameoffs = true
 							if(!trying) {
@@ -191,8 +190,8 @@ encode_with_offset:
 							} else {
 								t_cmd_bit++;
 							}
-							offset = old_offset;
 						}
+						offset = curr_offset;
 	
 						for(int curr_mbk_wrd = 0; curr_mbk_wrd < 2; curr_mbk_wrd++) {
 		

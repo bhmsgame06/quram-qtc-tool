@@ -10,15 +10,17 @@
 enum {
 	ACTION_UNDEFINED,
 	ACTION_RAW_TO_QTC,
-	ACTION_QTC_TO_RAW
+	ACTION_QTC_TO_RAW,
+	ACTION_REBUILD_MAP
 };
 
 static char *program_name;
 
 const struct option longopts[] = {
-	{"help",   0, NULL, 'h'},
-	{"decode", 0, NULL, 'd'},
-	{"encode", 0, NULL, 'e'},
+	{"help",        0, NULL, 'h'},
+	{"decode",      0, NULL, 'd'},
+	{"encode",      0, NULL, 'e'},
+	{"rebuild-map", 0, NULL, 'm'},
 	{NULL, 0, NULL, 0}
 };
 
@@ -29,6 +31,8 @@ static int action = ACTION_UNDEFINED;
 extern int32_t qtc_decode(uint8_t **, uint8_t *);
 /* qtc_encode.c */
 extern bool qtc_encode(FILE *, uint8_t *, size_t);
+/* rebuild_map.c */
+extern int32_t rebuild_map(char *, char *);
 
 void show_help(int);
 char *ch_ext(char *, char *);
@@ -39,9 +43,10 @@ void show_help(int err) {
 			"Usage: %s [options] <-d|-e> <in_file> [out_file] ...\n" \
 			"\n" \
 			"Available options:\n" \
-			"  -h, --help   - print help and exit.\n" \
-			"  -d, --decode - decode QTC.\n" \
-			"  -e, --encode - encode to QTC.\n",
+			"  -h, --help        - print help and exit.\n" \
+			"  -d, --decode      - decode QTC.\n" \
+			"  -e, --encode      - encode to QTC.\n" \
+			"  -m, --rebuild-map - rebuild map from text data.\n",
 			program_name);
 }
 
@@ -75,7 +80,7 @@ int main(int argc, char *argv[]) {
 
 	/* parsing arguments */
 	int c;
-	while((c = getopt_long(argc, argv, "hde", longopts, NULL)) != -1) {
+	while((c = getopt_long(argc, argv, "hdem", longopts, NULL)) != -1) {
 		switch(c) {
 			case 'h':
 				show_help(0);
@@ -87,6 +92,10 @@ int main(int argc, char *argv[]) {
 
 			case 'e':
 				action = ACTION_RAW_TO_QTC;
+				break;
+
+			case 'm':
+				action = ACTION_REBUILD_MAP;
 				break;
 
 			default:
@@ -192,6 +201,10 @@ int main(int argc, char *argv[]) {
 			fprintf(stderr, "qtc_encode() returned -1\n");
 			return 1;
 		}
+
+	} else if(action == ACTION_REBUILD_MAP) {
+		
+		return rebuild_map(argc < 2 ? ch_ext(argv[0], "map") : argv[1], argv[0]);
 
 	} else {
 

@@ -169,7 +169,7 @@ encode_with_offset:
 					for(int curr_mbk = 0; curr_mbk < 4; curr_mbk++) {
 	
 						if(curr_offset != old_offset && curr_mbk == 0) {
-							// sameoffs = false
+							/* sameoffs = false */
 							if(!trying) {
 								if(curr_offset >= (1 << N_STD_DIST_BITS)) {
 									WRITE_CMD_BITS(0b00000000000000 | curr_offset, 14);
@@ -184,7 +184,7 @@ encode_with_offset:
 								}
 							}
 						} else {
-							// sameoffs = true
+							/* sameoffs = true */
 							if(!trying) {
 								WRITE_CMD_BITS(0b1, 1);
 							} else {
@@ -257,6 +257,20 @@ skip_literal_2:
 				if(bit_count < best_bit_count) {
 					best_bit_count = bit_count;
 					best_offset = curr_offset;
+				}
+
+				/* mixed = false, lz = true */
+				if(!memcmp(in, in - curr_offset, 16)) {
+					best_bit_count = 2;
+
+					if(!trying) {
+						t_cmd_bit = trying ? 0 : (cmd_bit & 7);
+						WRITE_CMD_BITS(0b01, 2);
+					} else {
+						t_cmd_bit = 2;
+					}
+
+					t_block_length = 0;
 				}
 
 			}

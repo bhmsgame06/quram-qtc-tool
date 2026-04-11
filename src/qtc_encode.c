@@ -131,6 +131,7 @@ skip_literal_1:
 			uint32_t best_bit_count = UINT_MAX;
 			uint32_t best_offset = 0;
 			int curr_offset = 2;
+			bool next_mixed = true;
 			bool trying = true;
 
 			uint8_t *old_in = in;
@@ -168,7 +169,7 @@ encode_with_offset:
 
 					for(int curr_mbk = 0; curr_mbk < 4; curr_mbk++) {
 	
-						if(curr_offset != old_offset && curr_mbk == 0) {
+						if((curr_offset != old_offset || !next_mixed) && curr_mbk == 0) {
 							/* sameoffs = false */
 							if(!trying) {
 								if(curr_offset >= (1 << N_STD_DIST_BITS)) {
@@ -233,7 +234,7 @@ skip_literal_2:
 						}
 	
 						if(!trying) enc_mblks++;
-	
+
 					}
 
 				} else {
@@ -259,18 +260,15 @@ skip_literal_2:
 					best_offset = curr_offset;
 				}
 
-				/* mixed = false, lz = true */
-				if(!memcmp(in, in - curr_offset, 16)) {
-					best_bit_count = 2;
-
-					if(!trying) {
-						t_cmd_bit = trying ? 0 : (cmd_bit & 7);
-						WRITE_CMD_BITS(0b01, 2);
-					} else {
-						t_cmd_bit = 2;
+				if(!next_mixed) {
+					if(!memcmp(in, in - curr_offset, 16)) {
+						next_mixed = false;
+						in -= 16;
+						curr_offset--;
+						enc_mblks -= 4;
 					}
-
-					t_block_length = 0;
+				} else {
+					next_mixed = true;
 				}
 
 			}

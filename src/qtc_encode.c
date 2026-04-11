@@ -168,7 +168,7 @@ encode_with_offset:
 
 					for(int curr_mbk = 0; curr_mbk < 4; curr_mbk++) {
 	
-						if(curr_offset != old_offset) {
+						if(curr_offset != old_offset && curr_mbk == 0) {
 							// sameoffs = false
 							if(!trying) {
 								if(curr_offset >= (1 << N_STD_DIST_BITS)) {

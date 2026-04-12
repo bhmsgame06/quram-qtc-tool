@@ -13,7 +13,7 @@ static int get_num_strings(char *data, int length) {
 }
 
 /* rebuild map function */
-int rebuild_map(char *file_out, char *file_in) {
+int build_map(char *file_out, char *file_in) {
 	FILE *fd;
 
 	/* reading a file */

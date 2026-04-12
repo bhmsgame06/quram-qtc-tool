@@ -21,9 +21,9 @@ endif
 
 PREFIX := /usr/local
 
-all: qtc-tool
+all: qtctool
 
-qtc-tool: $(OBJS)
+qtctool: $(OBJS)
 	mkdir -p $(BUILD_DIR)
 	$(LD) -o $(BUILD_DIR)/$@ $^ $(LDFLAGS)
 
@@ -31,7 +31,7 @@ qtc-tool: $(OBJS)
 	$(CC) -c -o $@ $< $(CFLAGS)
 
 install:
-	install -Dm755 $(BUILD_DIR)/qtc-tool $(PREFIX)/bin
+	install -Dm755 $(BUILD_DIR)/qtctool $(PREFIX)/bin
 
 clean:
 	rm -f $(OBJS)

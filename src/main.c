@@ -85,7 +85,7 @@ int main(int argc, char *argv[]) {
 				return 0;
 
 			case 'o':
-				strncpy(output_file, optarg, sizeof(output_file));
+				strncpy(output_file, optarg, sizeof(output_file) - 1);
 				break;
 
 			case 'd':
@@ -162,10 +162,12 @@ int main(int argc, char *argv[]) {
 			}
 			
 			/* renaming an output file */
-			strncpy(tmp_filename, output_file, sizeof(tmp_filename));
-			char *dot = strrchr(tmp_filename, '.');
-			if(!dot) dot = (uint8_t *)&tmp_filename + strlen(tmp_filename);
-			snprintf(dot, (char *)&tmp_filename - dot + (sizeof(tmp_filename) - 1), "_%d.raw", i);
+			strncpy(tmp_filename, output_file, sizeof(tmp_filename) - 1);
+			if(i != 0) {
+				char *dot = strrchr(tmp_filename, '.');
+				if(!dot) dot = (uint8_t *)&tmp_filename + strlen(tmp_filename);
+				snprintf(dot, (char *)&tmp_filename - dot + (sizeof(tmp_filename) - 1), "_%d.raw", i);
+			}
 
 			/* write decoded data */
 			dest_fd = fopen(tmp_filename, "wb");

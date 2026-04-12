@@ -41,7 +41,7 @@ char *ch_ext(char *, char *);
 /* print help to the terminal */
 void show_help(int err) {
 	fprintf(err == 1 ? stderr : stdout,
-			"Usage: %s [options] <in_file> [out_file] ...\n" \
+			"Usage: %s [options] [argv] ...\n" \
 			"\n" \
 			"Available options:\n" \
 			"  -h, --help      - print help and exit.\n" \
@@ -54,7 +54,7 @@ void show_help(int err) {
 			"  -e, --encode    - action: encode to QTC.\n" \
 			"                    argv: <raw_file_1> [raw_file_2] [raw_file_3] ...\n" \
 			"\n" \
-			"  -m, --build-map - action: build map from text data;\n" \
+			"  -m, --build-map - action: build map from text data.\n" \
 			"                    argv: <raw_file>.\n" \
 			"\n",
 			program_name);

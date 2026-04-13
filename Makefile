@@ -5,7 +5,8 @@ OBJS := $(SRC_DIR)/main.o \
 		$(SRC_DIR)/qtc_decode.o \
 		$(SRC_DIR)/qtc_encode.o \
 		$(SRC_DIR)/qtc_tables.o \
-		$(SRC_DIR)/build_map.o
+		$(SRC_DIR)/build_map.o \
+		$(SRC_DIR)/progress.o
 LIBS := 
 
 CFLAGS := -O2 -g

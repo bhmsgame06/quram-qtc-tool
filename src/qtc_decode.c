@@ -31,7 +31,7 @@
 extern const uint16_t QuramDDC_diffTable[256];
 
 /* QTC2 decode */
-int32_t qtc_decode(uint8_t **p_out, uint8_t *in) {
+int32_t qtc_decode(uint8_t **p_out, uint8_t *in, int *p_percentage) {
 	/* checking magic */
 	if(memcmp(in + 4, "QTC2", 4)) {
 		fprintf(stderr, "Not a QTC2 file\n");
@@ -179,12 +179,16 @@ int32_t qtc_decode(uint8_t **p_out, uint8_t *in) {
 		}
 
 		unp_mblks += 4;
+
+		*p_percentage = (int)((float)unp_mblks / (float)total_mblks * 100.0f);
 	}
 
 	/* final */
 	int out_size_mul_of_16 = out_size & ~0x0f;
 	if(out_size > out_size_mul_of_16)
 		memcpy(p_curr_out, p_in_block, out_size - out_size_mul_of_16);
+
+	*p_percentage = 100;
 
 	*p_out = out_buf;
 

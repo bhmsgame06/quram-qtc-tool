@@ -47,7 +47,7 @@
 extern const uint16_t QuramDDC_diffTable[256];
 
 /* QTC2 encode */
-bool qtc_encode(FILE *fd, uint8_t *in, size_t in_size) {
+bool qtc_encode(FILE *fd, uint8_t *in, size_t in_size, int *p_percentage) {
 	/* encode status */
 	int32_t status = true;
 
@@ -306,7 +306,11 @@ skip_literal_2:
 			p_block[i] = t_block[k];
 		}
 
+		*p_percentage = (int)((float)enc_mblks / (float)total_mblks * 100.0f);
+
 	}
+
+	*p_percentage = 100;
 
 	uint32_t cmd_length = (cmd_bit >> 3) + ((cmd_bit & 7) != 0);
 	uint32_t extra_length = in_size - (total_mblks << 2);

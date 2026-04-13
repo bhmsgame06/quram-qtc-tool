@@ -5,7 +5,9 @@
 #include <string.h>
 #include <errno.h>
 #include <getopt.h>
+#include <pthread.h>
 #include <unistd.h>
+#include "progress.h"
 
 enum {
 	ACTION_UNDEFINED,
@@ -17,26 +19,30 @@ enum {
 static char *program_name;
 
 const struct option longopts[] = {
-	{"help",        0, NULL, 'h'},
-	{"output",      1, NULL, 'o'},
-	{"decode",      0, NULL, 'd'},
-	{"encode",      0, NULL, 'e'},
-	{"build-map",   0, NULL, 'm'},
+	{"help",          0, NULL, 'h'},
+	{"hide-progress", 0, NULL, 'P'},
+	{"output",        1, NULL, 'o'},
+	{"decode",        0, NULL, 'd'},
+	{"encode",        0, NULL, 'e'},
+	{"build-map",     0, NULL, 'm'},
 	{NULL, 0, NULL, 0}
 };
 
-static int action = ACTION_UNDEFINED;
-static char output_file[256];
-
 /* qtc_decode.c */
-extern int32_t qtc_decode(uint8_t **, uint8_t *);
+extern int32_t qtc_decode(uint8_t **, uint8_t *, int *);
 /* qtc_encode.c */
-extern bool qtc_encode(FILE *, uint8_t *, size_t);
+extern bool qtc_encode(FILE *, uint8_t *, size_t, int *);
 /* build_map.c */
 extern int32_t build_map(char *, char *);
 
 void show_help(int);
 char *ch_ext(char *, char *);
+
+static int action = ACTION_UNDEFINED;
+static char output_file[256];
+static bool progress = true;
+static pthread_t progress_thread;
+static struct progress progress_ctx;
 
 /* print help to the terminal */
 void show_help(int err) {
@@ -44,17 +50,19 @@ void show_help(int err) {
 			"Usage: %s [options] [argv] ...\n" \
 			"\n" \
 			"Available options:\n" \
-			"  -h, --help      - print help and exit.\n" \
+			"  -h, --help          - print help and exit.\n" \
 			"\n" \
-			"  -o, --output    - set output file.\n" \
+			"  -P, --hide-progress - hide progress.\n" \
 			"\n" \
-			"  -d, --decode    - action: decode QTC.\n" \
-			"                    argv: <qtc_file>.\n" \
+			"  -o, --output        - set output file.\n" \
 			"\n" \
-			"  -e, --encode    - action: encode to QTC.\n" \
-			"                    argv: <raw_file_1> [raw_file_2] [raw_file_3] ...\n" \
+			"  -d, --decode        - action: decode QTC.\n" \
+			"                       argv: <qtc_file>.\n" \
 			"\n" \
-			"  -m, --build-map - action: build map from text data.\n" \
+			"  -e, --encode        - action: encode to QTC.\n" \
+			"                       argv: <raw_file_1> [raw_file_2] [raw_file_3] ...\n" \
+			"\n" \
+			"  -m, --build-map     - action: build map from text data.\n" \
 			"                    argv: <raw_file>.\n" \
 			"\n",
 			program_name);
@@ -78,11 +86,15 @@ int main(int argc, char *argv[]) {
 
 	/* parsing arguments */
 	int c;
-	while((c = getopt_long(argc, argv, "ho:dem", longopts, NULL)) != -1) {
+	while((c = getopt_long(argc, argv, "hPo:dem", longopts, NULL)) != -1) {
 		switch(c) {
 			case 'h':
 				show_help(0);
 				return 0;
+
+			case 'P':
+				progress = false;
+				break;
 
 			case 'o':
 				strncpy(output_file, optarg, sizeof(output_file) - 1);
@@ -153,14 +165,6 @@ int main(int argc, char *argv[]) {
 		char tmp_filename[256];
 
 		for(int i = 0; p_qtc < p_qtc_end; i++) {
-			/* decode */
-			uint8_t *raw_data;
-			int32_t raw_size = qtc_decode(&raw_data, p_qtc);
-			if(raw_size == -1) {
-				fprintf(stderr, "qtc_decode() returned -1\n");
-				return 1;
-			}
-			
 			/* renaming an output file */
 			strncpy(tmp_filename, output_file, sizeof(tmp_filename) - 1);
 			if(i != 0) {
@@ -169,6 +173,24 @@ int main(int argc, char *argv[]) {
 				snprintf(dot, (char *)&tmp_filename - dot + (sizeof(tmp_filename) - 1), "_%d.raw", i);
 			}
 
+			/* start progress track */
+			if(progress) {
+				progress_ctx.filename = tmp_filename;
+				progress_ctx.percentage = 0;
+				pthread_create(&progress_thread, NULL, (void *)progress_track_start, &progress_ctx);
+			}
+
+			/* decode */
+			uint8_t *raw_data;
+			int32_t raw_size = qtc_decode(&raw_data, p_qtc, &progress_ctx.percentage);
+			if(raw_size == -1) {
+				fprintf(stderr, "qtc_decode() returned -1\n");
+				return 1;
+			}
+
+			/* stop progress track */
+			if(progress) progress_track_stop(&progress_ctx);
+			
 			/* write decoded data */
 			dest_fd = fopen(tmp_filename, "wb");
 			if(!dest_fd) {
@@ -219,8 +241,19 @@ int main(int argc, char *argv[]) {
 			fread(raw_data, 1, raw_size, src_fd);
 			fclose(src_fd);
 
+			/* start progress track */
+			if(progress) {
+				progress_ctx.filename = argv[i];
+				progress_ctx.percentage = 0;
+				pthread_create(&progress_thread, NULL, (void *)progress_track_start, &progress_ctx);
+			}
+
 			/* encode */
-			bool qtc_size = qtc_encode(dest_fd, raw_data, raw_size);
+			bool qtc_size = qtc_encode(dest_fd, raw_data, raw_size, &progress_ctx.percentage);
+
+			/* stop progress track */
+			if(progress) progress_track_stop(&progress_ctx);
+
 			free(raw_data);
 			if(!qtc_size) {
 				fprintf(stderr, "qtc_encode() returned -1\n");

@@ -71,7 +71,7 @@ char *ch_ext(char *filename, char *new_ext) {
 /* main function */
 int main(int argc, char *argv[]) {
 	/* checking zeroth arg */
-	if(argv[0] == NULL)
+	if(!argv[0])
 		program_name = "imtool";
 	else
 		program_name = argv[0];
@@ -164,7 +164,7 @@ int main(int argc, char *argv[]) {
 			/* renaming an output file */
 			strncpy(tmp_filename, output_file, sizeof(tmp_filename));
 			char *dot = strrchr(tmp_filename, '.');
-			if(dot == NULL) dot = (uint8_t *)&tmp_filename + strlen(tmp_filename);
+			if(!dot) dot = (uint8_t *)&tmp_filename + strlen(tmp_filename);
 			snprintf(dot, (char *)&tmp_filename - dot + (sizeof(tmp_filename) - 1), "_%d.raw", i);
 
 			/* write decoded data */

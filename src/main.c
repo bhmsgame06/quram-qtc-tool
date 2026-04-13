@@ -164,6 +164,7 @@ int main(int argc, char *argv[]) {
 			/* renaming an output file */
 			strncpy(tmp_filename, output_file, sizeof(tmp_filename));
 			char *dot = strrchr(tmp_filename, '.');
+			if(dot == NULL) dot = (uint8_t *)&tmp_filename + strlen(tmp_filename);
 			snprintf(dot, (char *)&tmp_filename - dot + (sizeof(tmp_filename) - 1), "_%d.raw", i);
 
 			/* write decoded data */

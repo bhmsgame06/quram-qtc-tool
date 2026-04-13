@@ -306,11 +306,11 @@ skip_literal_2:
 			p_block[i] = t_block[k];
 		}
 
-		*p_percentage = (int)((float)enc_mblks / (float)total_mblks * 100.0f);
+		if(p_percentage) *p_percentage = (int)((float)enc_mblks / (float)total_mblks * 100.0f);
 
 	}
 
-	*p_percentage = 100;
+	if(p_percentage) *p_percentage = 100;
 
 	uint32_t cmd_length = (cmd_bit >> 3) + ((cmd_bit & 7) != 0);
 	uint32_t extra_length = in_size - (total_mblks << 2);

@@ -180,7 +180,7 @@ int32_t qtc_decode(uint8_t **p_out, uint8_t *in, int *p_percentage) {
 
 		unp_mblks += 4;
 
-		*p_percentage = (int)((float)unp_mblks / (float)total_mblks * 100.0f);
+		if(p_percentage) *p_percentage = (int)((float)unp_mblks / (float)total_mblks * 100.0f);
 	}
 
 	/* final */
@@ -188,7 +188,7 @@ int32_t qtc_decode(uint8_t **p_out, uint8_t *in, int *p_percentage) {
 	if(out_size > out_size_mul_of_16)
 		memcpy(p_curr_out, p_in_block, out_size - out_size_mul_of_16);
 
-	*p_percentage = 100;
+	if(p_percentage) *p_percentage = 100;
 
 	*p_out = out_buf;
 

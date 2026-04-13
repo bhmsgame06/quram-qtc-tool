@@ -182,7 +182,7 @@ int main(int argc, char *argv[]) {
 
 			/* decode */
 			uint8_t *raw_data;
-			int32_t raw_size = qtc_decode(&raw_data, p_qtc, &progress_ctx.percentage);
+			int32_t raw_size = qtc_decode(&raw_data, p_qtc, progress ? &progress_ctx.percentage : NULL);
 			if(raw_size == -1) {
 				fprintf(stderr, "qtc_decode() returned -1\n");
 				return 1;
@@ -249,7 +249,7 @@ int main(int argc, char *argv[]) {
 			}
 
 			/* encode */
-			bool qtc_size = qtc_encode(dest_fd, raw_data, raw_size, &progress_ctx.percentage);
+			bool qtc_size = qtc_encode(dest_fd, raw_data, raw_size, progress ? &progress_ctx.percentage : NULL);
 
 			/* stop progress track */
 			if(progress) progress_track_stop(&progress_ctx);

@@ -189,7 +189,10 @@ int main(int argc, char *argv[]) {
 			}
 
 			/* stop progress track */
-			if(progress) progress_track_stop(&progress_ctx);
+			if(progress) {
+				progress_track_stop(&progress_ctx);
+				printf("\n");
+			}
 			
 			/* write decoded data */
 			dest_fd = fopen(tmp_filename, "wb");
@@ -252,7 +255,10 @@ int main(int argc, char *argv[]) {
 			bool qtc_size = qtc_encode(dest_fd, raw_data, raw_size, progress ? &progress_ctx.percentage : NULL);
 
 			/* stop progress track */
-			if(progress) progress_track_stop(&progress_ctx);
+			if(progress) {
+				progress_track_stop(&progress_ctx);
+				printf("\n");
+			}
 
 			free(raw_data);
 			if(!qtc_size) {

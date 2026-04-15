@@ -57,13 +57,13 @@ void show_help(int err) {
 			"  -o, --output        - set output file.\n" \
 			"\n" \
 			"  -d, --decode        - action: decode QTC.\n" \
-			"                       argv: <qtc_file>.\n" \
+			"                        argv: <qtc_file>.\n" \
 			"\n" \
 			"  -e, --encode        - action: encode to QTC.\n" \
-			"                       argv: <raw_file_1> [raw_file_2] [raw_file_3] ...\n" \
+			"                        argv: <raw_file_1> [raw_file_2] [raw_file_3] ...\n" \
 			"\n" \
 			"  -m, --build-map     - action: build map from text data.\n" \
-			"                    argv: <raw_file>.\n" \
+			"                        argv: <raw_file>.\n" \
 			"\n",
 			program_name);
 }

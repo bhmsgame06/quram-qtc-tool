@@ -43,6 +43,10 @@ int32_t qtc_decode(uint8_t **p_out, uint8_t *in, int *p_percentage) {
 			(in[9] << 8) |
 			(in[10] << 16) |
 			(in[11] << 24);
+	if(out_size < 16) {
+		fprintf(stderr, "File with raw size < 16 cannot be processed\n");
+		return 0;
+	}
 	/* output buffer */
 	uint8_t *out_buf = malloc(out_size);
 	if(!out_buf) {

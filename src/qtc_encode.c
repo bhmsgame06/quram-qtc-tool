@@ -48,6 +48,11 @@ extern const uint16_t QuramDDC_diffTable[256];
 
 /* QTC2 encode */
 bool qtc_encode(FILE *fd, uint8_t *in, size_t in_size, int *p_percentage) {
+	if(in_size < 16) {
+		fprintf(stderr, "File with raw size < 16 cannot be processed\n");
+		return false;
+	}
+
 	/* encode status */
 	int32_t status = true;
 

@@ -72,7 +72,10 @@ void show_help(int err) {
 char *ch_ext(char *filename, char *new_ext) {
 	strncpy(output_file, filename, sizeof(output_file) - 1);
 	char *dot = strrchr(output_file, '.');
-	if(dot) *(uint8_t *)(dot + 1) = '\0';
+	if(dot)
+		*(uint8_t *)(dot + 1) = '\0';
+	else
+		strncat(output_file, ".", sizeof(output_file) - 1);
 	strncat(output_file, new_ext, sizeof(output_file) - 1);
 }
 
